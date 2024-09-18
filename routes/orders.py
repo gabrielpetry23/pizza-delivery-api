@@ -16,7 +16,7 @@ session = Session(bind=engine)
 
 
 @order_router.get("/get_orders")
-async def create_order(Authorize: AuthJWT = Depends()):
+async def get_order(Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -24,13 +24,23 @@ async def create_order(Authorize: AuthJWT = Depends()):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
-    orders = session.query(Order).all()
-    if orders is None:
+    current_user = Authorize.get_jwt_subject()
+    user = session.query(User).filter(User.username == current_user).first()
+
+    if user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="No orders found!"
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found!"
         )
-    return jsonable_encoder(orders), HTTPException(
-        status_code=status.HTTP_200_OK, detail="Orders found!"
+
+    if user.is_staff:
+        orders = session.query(Order).all()
+        if not orders:
+            return []
+        return jsonable_encoder(orders)
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Only staff can view this page!",
     )
 
 
@@ -47,12 +57,8 @@ async def create_order(order: OrderModel, Authorize: AuthJWT = Depends()):
     current_user = Authorize.get_jwt_subject()
     user = session.query(User).filter(User.username == current_user).first()
 
-    new_order = Order(
-        quantity=order.quantity,
-        pizza_size=order.pizza_size,
-    )
+    new_order = Order(quantity=order.quantity, pizza_size=order.pizza_size, user=user)
 
-    new_order.user = user
     session.add(new_order)
     session.commit()
     response = {

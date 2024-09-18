@@ -25,14 +25,15 @@ async def get_users(Authorize: AuthJWT = Depends()):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
+
     users = session.query(User).all()
-    if users is None:
+
+    if not users:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No users found!"
         )
-    return jsonable_encoder(users), HTTPException(
-        status_code=status.HTTP_200_OK, detail="Users found!"
-    )
+    return jsonable_encoder(users)
+
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def signup(user: SignUpModel):

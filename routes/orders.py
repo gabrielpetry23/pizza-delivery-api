@@ -15,8 +15,8 @@ order_router = APIRouter(
 session = Session(bind=engine)
 
 
-@order_router.get("/get_orders")
-async def get_order(Authorize: AuthJWT = Depends()):
+@order_router.get("/orders")
+async def list_all_orders(Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -68,3 +68,27 @@ async def create_order(order: OrderModel, Authorize: AuthJWT = Depends()):
         "id": new_order.id,
     }
     return jsonable_encoder(response)
+
+
+@order_router.get("/order/{id}")
+async def get_order_by_id(id: int, Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
+    
+    user = Authorize.get_jwt_subject()
+    current_user = session.query(User).filter(User.username == user).first()
+    
+    if current_user.is_staff:
+        order = session.query(Order).filter(Order.id == id).first()
+        if not order:
+            raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Order not found!"
+        )
+        return jsonable_encoder(order)
+        
+    raise HTTPException( status_code=status.HTTP_401_UNAUTHORIZED, detail="Only staff can view this page!")

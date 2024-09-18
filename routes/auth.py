@@ -1,6 +1,6 @@
 from fastapi import APIRouter, status, Depends
 from fastapi.exceptions import HTTPException
-from database.database import Session, engine
+from database.db import Session, engine
 from database.schemas import SignUpModel, LoginModel
 from database.models import User
 from fastapi.exceptions import HTTPException
@@ -16,8 +16,8 @@ auth_router = APIRouter(
 session = Session(bind=engine)
 
 
-@auth_router.get("/")
-async def hello(Authorize: AuthJWT = Depends()):
+@auth_router.get("/get_users")
+async def get_users(Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -25,19 +25,14 @@ async def hello(Authorize: AuthJWT = Depends()):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token",
         )
-        
-    return {"message": "Hello, World!"}
-
-
-@auth_router.get("/get_users")
-async def get_users():
     users = session.query(User).all()
-
     if users is None:
-        raise HTTPException(status_code=404, detail="No users found!")
-
-    return users, HTTPException(status_code=200, detail="Users found!")
-
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No users found!"
+        )
+    return jsonable_encoder(users), HTTPException(
+        status_code=status.HTTP_200_OK, detail="Users found!"
+    )
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def signup(user: SignUpModel):

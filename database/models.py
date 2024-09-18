@@ -1,4 +1,4 @@
-from database.database import Base
+from database.db import Base
 from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils.types import ChoiceType
@@ -24,7 +24,7 @@ class Order(Base):
         ("PENDING", "pending"),
         ("IN-TRANSIT", "in-transit"),
         ("DELIVERED", "delivered"),
-        # ('CANCELLED', 'cancelled'),
+        ('CANCELLED', 'cancelled'),
     )
 
     PIZZA_SIZE = (

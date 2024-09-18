@@ -1,4 +1,4 @@
-from database.database import engine, Base
+from database.db import engine, Base
 from models import User, Order
 
 Base.metadata.create_all(bind=engine)

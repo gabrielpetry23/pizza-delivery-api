@@ -15,7 +15,7 @@ order_router = APIRouter(
 session = Session(bind=engine)
 
 
-@order_router.get("/orders")
+@order_router.get("/all_orders")
 async def list_all_orders(Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
@@ -128,7 +128,7 @@ async def get_user_specific_order(order_id: int, Authorize: AuthJWT = Depends())
     orders = current_user.orders
 
     for order in orders:
-        if order.id == id:
+        if order.id == order_id:
             return jsonable_encoder(order)
 
     raise HTTPException(
@@ -136,8 +136,8 @@ async def get_user_specific_order(order_id: int, Authorize: AuthJWT = Depends())
     )
     
     
-@order_router.put("/order/update/{order_id}")
-async def update_order(order_id: int, order: OrderModel, Authorize: AuthJWT = Depends()):
+@order_router.put("/order/update/{id}")
+async def update_order(id: int, order: OrderModel, Authorize: AuthJWT = Depends()):
     try:
         Authorize.jwt_required()
     except Exception as e:
@@ -146,10 +146,22 @@ async def update_order(order_id: int, order: OrderModel, Authorize: AuthJWT = De
             detail="Invalid token"
         )
         
-        order_to_update = session.query(Order).filter(Order.id == order_id).first()
-        order_to_update.quantity = order.quantity
-        order_to_update.pizza_size = order.pizza_size
+    order_to_update = session.query(Order).filter(Order.id == id).first()
+    if not order_to_update:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found!"
+        )
+    
+    order_to_update.quantity = order.quantity
+    order_to_update.pizza_size = order.pizza_size
         
-        session.commit()
-        return jsonable_encoder(order_to_update)
+    session.commit()
+    session.refresh(order_to_update)
+    
+    response = {
+        "message": "order updated successfully!",
+        "order": jsonable_encoder(order_to_update)
+    }
+    return response
     

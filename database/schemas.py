@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from typing import Optional
-from pydantic import Field
+from sqlalchemy_utils.types import ChoiceType
 
 
 class SignUpModel(BaseModel):
@@ -12,7 +12,7 @@ class SignUpModel(BaseModel):
     is_staff: Optional[bool] = Field(default=False)
 
     class Config:
-        from_attributes = True
+        orm_mode = True
         json_schema_extra = {
             "example": {
                 "username": "john_doe",
@@ -40,8 +40,16 @@ class OrderModel(BaseModel):
     pizza_size: str = Field(default="SMALL")
     user_id: Optional[int] = Field(default=None)
 
+    @validator("order_status", pre=True, always=True)
+    def validate_order_status(cls, v):
+        return str(v)
+
+    @validator("pizza_size", pre=True, always=True)
+    def validate_pizza_size(cls, v):
+        return str(v)
+
     class Config:
-        from_attributes = True
+        orm_mode = True
         json_schema_extra = {
             "example": {
                 "quantity": 2,

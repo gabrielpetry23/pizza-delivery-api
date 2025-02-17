@@ -160,8 +160,33 @@ async def update_order(id: int, order: OrderModel, Authorize: AuthJWT = Depends(
     session.refresh(order_to_update)
     
     response = {
-        "message": "order updated successfully!",
+        "message": "Order updated successfully!",
         "order": jsonable_encoder(order_to_update)
     }
     return response
     
+@order_router.delete("/order/delete/{id}")
+async def delete_order(id: int, Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token"
+        )
+        
+    order_to_delete = session.query(Order).filter(Order.id == id).first()
+    if not order_to_delete:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Order not found!"
+        )
+        
+    session.delete(order_to_delete)
+    session.commit()
+    
+    response = {
+        "message": "Order deleted successfully!",
+        "order": jsonable_encoder(order_to_delete)
+    }
+    return response
